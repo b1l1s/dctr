@@ -68,6 +68,8 @@ void cxiRegionDecrypt(ncch_h* ncch, file_decrypt_ctx* ctx)
 			{
 				// In reality only banner and icon uses 0x2C
 				ctx->size = exefs->fileHeaders[0].size;
+				// Align to block size
+				ctx->size = (ctx->size + (AES_BLOCK_SIZE - 1)) & ~(AES_BLOCK_SIZE - 1);
 
 				ctx->keyslot = 0x25;
 				fileDecrypt(ctx);
