@@ -7,6 +7,16 @@
 #include <string.h>
 u8 slot0x25keyX[AES_BLOCK_SIZE];
 
+typedef struct title_key_s
+{
+	u8 unk[0x8];
+	u8 id[0x8];
+	u8 key[0x10];
+} title_key_s;
+
+static title_key_s* titleKeys;
+static u32 titleKeysCount;
+
 void fileDecrypt(file_decrypt_ctx* ctx)
 {
 	u32 size = ctx->size;
@@ -231,30 +241,156 @@ void cciDecrypt(const char* fname)
 		file_close(file);
 	}
 }
-/*
-void cdnDecrypt(const char* inFname, const char* outFname)
+
+u32 getTitleKeys(const char* fname)
 {
-	void* buffer = (void*) memmgr_alloc(1 * 1024 * 1024);
+	titleKeysCount = 0;
 
-	// Decrypt the outer AES-CBC layer
-	u32 size = dump_to_mem(inFname, buffer, 0);
+	file_s* file = file_open(fname, FILE_R);
+	if(file)
+	{
+		printf("%s found\n", fname);
 
-	u8 iv[16];
-	memset(iv, 0, 16);
+		u32 size = file_getsize(file);
+		if(size >= 0x30)
+		{
+			size -= 0x10;
+			titleKeys = (title_key_s*) memmgr_alloc(size);
+			titleKeysCount = size / sizeof(title_key_s);
 
-	aes_setkey(AES_TEMP_KEYSLOT, key, AES_KEYNORMAL, AES_INPUT_BE | AES_INPUT_NORMAL);
-	aes_use_keyslot(AES_TEMP_KEYSLOT);
+			file_seek(file, 0x10);
+			file_read(file, titleKeys, size);
+		}
 
-	aes(buffer, buffer, size / AES_BLOCK_SIZE, iv, AES_CBC_DECRYPT_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
+		file_close(file);
+	}
 
-	dump_to_file(outFname, buffer, size);
-
-	// Finally decrypt the cxi
-	cxiDecrypt(outFname);
-
-	memmgr_free(buffer);
+	return titleKeysCount == 0;
 }
-*/
+
+void _cdnDecrypt(u8* iv, file_s* file, u32 foffset, void* buffer, u32 bufsize)
+{
+	file_decrypt_ctx ctx;
+	memset(&ctx, 0, sizeof(ctx));
+
+	ctx.file = file;
+	ctx.foffset = 0;
+	ctx.size = file_getsize(file);
+	ctx.buffer = buffer;
+	ctx.bufsize = bufsize;
+	ctx.mode = AES_CBC_DECRYPT_MODE;
+	ctx.iv = iv;
+	ctx.ivMode = AES_INPUT_BE | AES_INPUT_NORMAL;
+	ctx.keyslot = AES_TEMP_KEYSLOT;
+
+	fileDecrypt(&ctx);
+}
+
+unsigned long strtoul16_be(const char* str)
+{
+	unsigned long res = 0;
+	for(int i = 0; i < 8; ++i)
+	{
+		res <<= 4;
+		if(str[i] >= 0x30 && str[i] <= 0x39)
+			res |= str[i] - 0x30;
+		else if(str[i] >= 0x41 && str[i] <= 0x46)
+			res |= str[i] - 0x41 + 0xA;
+		else if(str[i] >= 0x61 && str[i] <= 0x66)
+			res |= str[i] - 0x61 + 0xA;
+	}
+
+	res = __builtin_bswap32(res);
+
+	return res;
+}
+
+void cdnDecrypt(const char* path)
+{
+	file_s* file = file_open(path, FILE_W);
+	if(file)
+	{
+		ncch_h* ncch = (ncch_h*) memmgr_alloc(sizeof(ncch_h));
+
+		u32 workSize = 0x100000; // 1MB
+		void* work = (void*) memmgr_alloc(workSize);
+
+		u32 valid = 1;
+		file_read(file, ncch, sizeof(ncch_h));
+		if(ncch->magic != NCCH_MAGIC)
+		{
+			// possibly AES-CBC encrypted
+			valid = 0;
+
+			char* fname = strrchr(path,'/');
+			fname++;
+			if(strlen(fname) != 20)
+			{
+				printf("APP files has to be in the format of : [titleid].app\n");
+			}
+			else
+			{
+				u8 titleID[8];
+				*((u32*)titleID) = strtoul16_be(fname);
+				*((u32*)(titleID + 4)) = strtoul16_be(fname + 8);
+
+				if(!titleKeys && getTitleKeys("0:/decTitleKeys.bin") != 0)
+				{
+					printf("Failed to read title keys\n");
+				}
+				else
+				{
+					title_key_s* titleKey = NULL;
+					for(int i = 0; i < titleKeysCount; ++i)
+					{
+						if(memcmp(titleKeys[i].id, titleID, 8) == 0)
+						{
+							titleKey = &titleKeys[i];
+							break;
+						}
+					}
+
+					u8 iv[AES_BLOCK_SIZE];
+					if(titleKey != NULL)
+					{
+						aes_setkey(AES_TEMP_KEYSLOT, titleKey->key, AES_KEYNORMAL, AES_INPUT_BE | AES_INPUT_NORMAL);
+						aes_use_keyslot(AES_TEMP_KEYSLOT);
+						memset(iv, 0, AES_BLOCK_SIZE);
+
+						aes(ncch, ncch, sizeof(ncch_h) / AES_BLOCK_SIZE, iv, AES_CBC_DECRYPT_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
+						if(ncch->magic == NCCH_MAGIC)
+						{
+							printf("Decrypting APP: %s\n", path);
+
+							memset(iv, 0, AES_BLOCK_SIZE);
+							_cdnDecrypt(iv, file, 0, work, workSize);
+
+							valid = 1;
+						}
+						else
+							printf("Decryption failed, wrong title ID?\n");
+					}
+					else
+						printf("Title key not found\n");
+				}
+			}
+		}
+
+		if(valid)
+		{
+			_cxiDecrypt(ncch, file, 0, work, workSize);
+
+			file_seek(file, 0);
+			file_write(file, ncch, sizeof(ncch_h));
+			printf("Done!\n");
+		}
+
+		memmgr_free(work);
+		memmgr_free(ncch);
+		file_close(file);
+	}
+}
+
 uint32_t getNandCtr(u8* ctr)
 {
 	u8* ctrStart;

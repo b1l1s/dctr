@@ -278,6 +278,8 @@ int main()
 					cxiDecrypt(path);
 				else if(strcasecmp(ext, ".3ds") == 0 || strcasecmp(ext, ".cci") == 0) // .3ds .cci
 					cciDecrypt(path);
+				else if(strcasecmp(ext, ".app") == 0)
+					cdnDecrypt(path);
 
 				*(path + len) = 0;
 			}
