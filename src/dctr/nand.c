@@ -2,9 +2,43 @@
 #include "mem.h"
 #include "ctr/headers.h"
 #include "ctr/printf.h"
+#include "file.h"
 
 #define		NAND_SOFFSET		0x200000
 #define		NAND_LAST_SOFFSET	0x600000
+
+void dumpEmunand(const char* path)
+{
+	file_s* out = file_open(path, FILE_W | FILE_T);
+	if(out)
+	{
+		const u32 size = 0x2F3E3600;
+
+		file_seek(out, size);
+		if(file_tell(out) != size)
+		{
+			printf("Preallocation failed! Not enough space?\n");
+			return;
+		}
+		file_seek(out, 0);
+
+		u32 bufferSize = 1024 * 1024;
+		void* buffer = memmgr_alloc(bufferSize);
+		if(buffer)
+		{
+			int i = 0;
+			for(i = 0; i < size / 0x200; i += bufferSize / 0x200)
+			{
+				ctrff_emunand_read(buffer, i, bufferSize / 0x200);
+				file_write(out, buffer, bufferSize);
+			}
+
+			memmgr_free(buffer);
+		}
+
+		file_close(out);
+	}
+}
 
 u32 getEmunands(emunand_s* nands, u32 max)
 {

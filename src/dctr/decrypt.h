@@ -23,5 +23,6 @@ typedef struct
 void fileDecrypt(file_decrypt_ctx* ctx);
 void cxiDecrypt(const char* fname);
 void cciDecrypt(const char* fname);
+void cdnDecrypt(const char* path);
 
 #endif /*__DECRYPT_H*/
