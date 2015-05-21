@@ -33,7 +33,7 @@ OBJS+=$(patsubst $(SRC_DIR)/%.S, $(OBJ_DIR)/%.o, $(wildcard $(SRC_DIR)/*.S))
 
 LAUNCHERBINS=bin/arm9hax.bin bin/arm11hax.bin
 
-OUT_DIR=bin obj/dctr patch
+OUT_DIR=bin obj/dctr
 
 .PHONY: clean
 

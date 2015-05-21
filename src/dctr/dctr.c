@@ -79,7 +79,7 @@ int main()
 	dirlist.dirContents = (dir_content_s*) memmgr_alloc(sizeof(dir_content_s) * dirlist.maxContent);
 	memset(dirlist.dirContents, 0, sizeof(dir_content_s) * dirlist.maxContent);
 
-	file_s* file = file_open("0:/slot0x25keyX.bin", FILE_R);
+	file_s* file = file_open("sdmc:/slot0x25keyX.bin", FILE_R);
 	if(file)
 	{
 		printf("slot0x25keyX.bin found\n");
@@ -90,7 +90,7 @@ int main()
 		printf("Failed to open slot0x25keyX.bin\n");
 
 	char path[0x3FF];
-	sprintf(path, "%s", "0:");
+	sprintf(path, "%s", "sdmc:");
 	dirlist_draw_borders();
 	dirlist_change_path(&dirlist, path);
 	while(1)

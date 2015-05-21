@@ -67,7 +67,7 @@ void dirlist_sel_next(dirlist_s* dirlist)
 
 		dirlist->prevSel = dirlist->sel++;
 	}
-	else
+	else if(dirlist->count)
 	{
 		dirlist->sel = 0;
 		dirlist->top = 0;
@@ -85,7 +85,7 @@ void dirlist_sel_prev(dirlist_s* dirlist)
 
 		dirlist->prevSel = dirlist->sel--;
 	}
-	else
+	else if(dirlist->count)
 	{
 		dirlist->sel = dirlist->count - 1;
 		dirlist->top = MAX_DIR_CONTENT_PER_PAGE >= dirlist->count ? 0 : dirlist->count - MAX_DIR_CONTENT_PER_PAGE;

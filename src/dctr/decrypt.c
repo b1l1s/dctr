@@ -334,7 +334,7 @@ void cdnDecrypt(const char* path)
 				*((u32*)titleID) = strtoul16_be(fname);
 				*((u32*)(titleID + 4)) = strtoul16_be(fname + 8);
 
-				if(!titleKeys && getTitleKeys("0:/decTitleKeys.bin") != 0)
+				if(!titleKeys && getTitleKeys("sdmc:/decTitleKeys.bin") != 0)
 				{
 					printf("Failed to read title keys\n");
 				}
