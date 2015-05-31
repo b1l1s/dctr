@@ -229,6 +229,13 @@ arm11_kernel_entry:
         bl invalidate_dcache
         bl invalidate_icache
 
+    setup_gpu:
+    	mov r1, #0
+    	ldr r0, =0xFFFCE478
+    	str r1, [r0]
+    	ldr r0, =0xFFFCE578
+    	str r1, [r0]
+
     copy_arm9:
         ldr r0, =arm9_code
         ldr r1, =arm9_code_end-arm9_code

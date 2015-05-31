@@ -210,8 +210,7 @@ void cciDecrypt(const char* fname)
 			u32 workSize = 0x100000; // 1MB
 			void* work = (void*) memmgr_alloc(workSize);
 
-			int i;
-			for(i = 0; i < 8; ++i)
+			for(int i = 0; i < 8; ++i)
 			{
 				if(ncsd->ptable[i].size != 0)
 				{
@@ -274,7 +273,7 @@ void _cdnDecrypt(u8* iv, file_s* file, u32 foffset, void* buffer, u32 bufsize)
 	memset(&ctx, 0, sizeof(ctx));
 
 	ctx.file = file;
-	ctx.foffset = 0;
+	ctx.foffset = foffset;
 	ctx.size = file_getsize(file);
 	ctx.buffer = buffer;
 	ctx.bufsize = bufsize;
@@ -355,8 +354,8 @@ void cdnDecrypt(const char* path)
 					{
 						aes_setkey(AES_TEMP_KEYSLOT, titleKey->key, AES_KEYNORMAL, AES_INPUT_BE | AES_INPUT_NORMAL);
 						aes_use_keyslot(AES_TEMP_KEYSLOT);
-						memset(iv, 0, AES_BLOCK_SIZE);
 
+						memset(iv, 0, AES_BLOCK_SIZE);
 						aes(ncch, ncch, sizeof(ncch_h) / AES_BLOCK_SIZE, iv, AES_CBC_DECRYPT_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
 						if(ncch->magic == NCCH_MAGIC)
 						{
@@ -396,8 +395,7 @@ uint32_t getNandCtr(u8* ctr)
 	u8* ctrStart;
 	static const u32* version_ctrs[] = {(u32*)0x080D7CAC, (u32*)0x080D858C, (u32*)0x080D748C,
 										(u32*)0x080D740C, (u32*)0x080D74CC, (u32*)0x080D794C};
-	int i;
-	for(i = 0; i < 6; ++i)
+	for(int i = 0; i < 6; ++i)
 	{
 		if(*version_ctrs[i] == 0x5C980)
 		{
@@ -420,7 +418,7 @@ uint32_t getNandCtr(u8* ctr)
 	}
 
 	if(ctrStart != NULL)
-		for(i = 0; i < AES_BLOCK_SIZE; i++)
+		for(int i = 0; i < AES_BLOCK_SIZE; i++)
 			ctr[i] = ctrStart[15 - i];
 
 	return ctrStart == NULL;

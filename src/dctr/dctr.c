@@ -63,6 +63,12 @@ int main()
 	const u32 sub_bg = 0x857F5B;
 	const u32 sel = 0x757051;
 
+	draw_s draw;
+	draw.top_left = (void*)0x20184E60;
+	draw.top_right = (void*)0x20282160;
+	draw.sub = (void*)0x202118E0;
+	draw_init(&draw);
+
 	console_init(0x000000, sub_bg);
 	draw_clear_screen(SCREEN_TOP, top_bg);
 
