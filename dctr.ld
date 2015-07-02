@@ -4,7 +4,7 @@ SECTIONS
 {
 	. = 0x23F00000;
 	.text : {
-		obj/dctr/entry.o (START_VECTOR)
+		*(.text.start)
 		*(.text)
 	}
 	.data : {

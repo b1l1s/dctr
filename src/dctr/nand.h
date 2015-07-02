@@ -27,5 +27,6 @@ typedef struct emunand_s
 #define		NAND_SIZE_SAMSUNG	0x1DD000
 
 u32 getEmunands(emunand_s* nands, u32 max);
+void dumpNand(const char* path, int type);
 
 #endif /*__NAND_H*/

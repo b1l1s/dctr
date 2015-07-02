@@ -14,22 +14,6 @@
 
 extern u8 slot0x25keyX[AES_BLOCK_SIZE];
 
-__attribute__((naked))
-void infloop()
-{
-	while(1);
-}
-
-void overrideIntVector()
-{
-	*((volatile u32*)0x08000004) = (u32)infloop;
-	*((volatile u32*)0x0800000C) = (u32)infloop;
-	*((volatile u32*)0x08000014) = (u32)infloop;
-	*((volatile u32*)0x0800001C) = (u32)infloop;
-	*((volatile u32*)0x08000024) = (u32)infloop;
-	*((volatile u32*)0x0800002C) = (u32)infloop;
-}
-
 void bootDelay()
 {
 	asm volatile
@@ -50,11 +34,6 @@ void bootDelay()
 
 int main()
 {
-	overrideIntVector();
-	
-	*((volatile u32*)0x10000020) = 0;
-	*((volatile u32*)0x10000020) = 0x340;
-	
 	bootDelay();
 
 	memmgr_init((void*)0x20400000, 8 * 1024 * 1024);
@@ -63,11 +42,7 @@ int main()
 	const u32 sub_bg = 0x857F5B;
 	const u32 sel = 0x757051;
 
-	draw_s draw;
-	draw.top_left = (void*)0x20184E60;
-	draw.top_right = (void*)0x20282160;
-	draw.sub = (void*)0x202118E0;
-	draw_init(&draw);
+	draw_init((draw_s*)0x23FFFE00);
 
 	console_init(0x000000, sub_bg);
 	draw_clear_screen(SCREEN_TOP, top_bg);
@@ -138,6 +113,14 @@ int main()
 				*lastSlash = 0;
 				dirlist_change_path(&dirlist, path);
 			}
+		}
+		else if(input & HID_X)
+		{
+			/*
+			printf("Dumping nand..\n");
+			dumpNand("sdmc:/ctrnand.bin", 0);
+			printf("Done..\n");
+			*/
 		}
 	}
 }

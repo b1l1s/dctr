@@ -2,6 +2,7 @@
 #include "ff.h"
 #include "ctrff.h"
 #include "mem.h"
+#include "decrypt.h"
 
 #include <string.h>
 #include "ctr/draw.h"
@@ -43,7 +44,7 @@ u32 file_init()
 	files = (file_s*) memmgr_alloc(sizeof(file_s) * FILE_MAX);
 	memset(files, 0, sizeof(file_s) * FILE_MAX);
 
-	u32 res = ctrff_init(memmgr_alloc);
+	u32 res = ctrff_init((void*(*)(size_t))memmgr_alloc);
 	if(res == 0)
 	{
 		res = getNandCtr(nand_ctr);
@@ -55,6 +56,7 @@ u32 file_init()
 			ctx.encrypt = ctrNandDecrypt;
 
 			res = ctrff_emunand_mount(&ctx);
+			res = ctrff_nand_mount(&ctx);
 		}
 	}
 

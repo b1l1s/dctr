@@ -4,14 +4,16 @@ CC=arm-none-eabi-gcc
 CP=arm-none-eabi-g++
 OC=arm-none-eabi-objcopy 
 LD=arm-none-eabi-ld
-AM=armips
-ROP=python lib/p3ds/gspwn-rop.py
 MV=mv -f
 RM=rm -rf
+
+CTR_DIR=../ctr
+CTRFF_DIR=../ctrff
 
 LIBNAME=dctr
 ELFNAME=$(LIBNAME).elf
 BINNAME=$(LIBNAME).bin
+DATNAME=$(LIBNAME).dat
 
 SRC_DIR:=src/$(LIBNAME)
 OBJ_DIR:=obj/$(LIBNAME)
@@ -19,8 +21,8 @@ LIB_DIR:=lib
 DEP_DIR:=obj/$(LIBNAME)
 
 LIBS=-lctrff -lctr
-LIBPATHS=-L../ctrff/lib -L../ctr/lib
-INCPATHS=-I../ctrff/include -I../ctr/include
+LIBPATHS=-L$(CTRFF_DIR)/lib -L$(CTR_DIR)/lib
+INCPATHS=-I$(CTRFF_DIR)/include -I$(CTR_DIR)/include
 
 CFLAGS=-std=gnu99 -Os -g -mword-relocations -fomit-frame-pointer -ffast-math $(INCPATHS)
 C9FLAGS=-mcpu=arm946e-s -march=armv5te -mlittle-endian
@@ -31,28 +33,19 @@ OBJS:=$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(wildcard $(SRC_DIR)/*.c))
 OBJS+=$(patsubst $(SRC_DIR)/%.s, $(OBJ_DIR)/%.o, $(wildcard $(SRC_DIR)/*.s))
 OBJS+=$(patsubst $(SRC_DIR)/%.S, $(OBJ_DIR)/%.o, $(wildcard $(SRC_DIR)/*.S))
 
-LAUNCHERBINS=bin/arm9hax.bin bin/arm11hax.bin
-
-OUT_DIR=bin obj/dctr
+OUT_DIR=bin out obj/dctr
 
 .PHONY: clean
 
-all: Launcher.dat
+all: out/$(DATNAME)
 
-Launcher.dat: $(LAUNCHERBINS)
-	$(ROP) bin/arm11hax.bin $@
-	encrypt.bat
-	$(MV) Launcher_enc.dat $@
+out/$(DATNAME): bin/$(BINNAME)
+	make dir_out=../out path= name=$(DATNAME) -C CakeHax launcher
+	dd if=bin/$(BINNAME) of=out/$(DATNAME) bs=512 seek=256
 
-bin/dctr.bin: $(OBJS) ../ctrff/lib/libctrff.a ../ctr/lib/libctr.a | dirs
+bin/dctr.bin: $(OBJS) $(CTRFF_DIR)/lib/libctrff.a $(CTR_DIR)/lib/libctr.a | dirs
 	$(CC) -nostartfiles --specs=$(LIBNAME).specs $(OBJS) $(LDFLAGS) -o bin/$(ELFNAME)
 	$(OC) $(OCFLAGS) -O binary bin/$(ELFNAME) bin/$(BINNAME)
-
-bin/arm11hax.bin: src/launcher/arm11hax.s bin/arm9hax.bin bin/$(BINNAME) | dirs
-	$(AM) $<
-
-bin/arm9hax.bin: src/launcher/arm9hax.s | dirs
-	$(AM) $<
 
 obj/%.o: src/%.c | dirs
 	@echo Compiling $<
@@ -72,4 +65,5 @@ ${OUT_DIR}:
 	mkdir -p ${OUT_DIR}
 
 clean:
-	rm -rf bin/*.elf bin/*.bin obj/* Launcher.dat
+	rm -rf bin/*.elf bin/*.bin obj/*
+	make dir_out=../out name=dctr.dat -C CakeHax clean

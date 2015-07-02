@@ -5,7 +5,7 @@
 
 #define FILE_R		0x01 // FA_READ
 #define FILE_W		0x03 // FA_READ | FA_WRITE
-#define FILE_T		0x08 // FA_CREATE_NEW
+#define FILE_T		0x08 // FA_CREATE_ALWAYS
 
 #define DIR_LIST_MAX_CHAR	0xFF
 

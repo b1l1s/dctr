@@ -1,0 +1,14 @@
+*.txt
+.cproject
+.project
+.settings
+
+bin
+obj
+
+*.o
+*.elf
+*.bin
+*.dat
+*.exe
+*.dat

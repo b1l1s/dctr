@@ -2,12 +2,13 @@
 #include "mem.h"
 #include "ctr/headers.h"
 #include "ctr/printf.h"
+#include "ctrff.h"
 #include "file.h"
 
 #define		NAND_SOFFSET		0x200000
 #define		NAND_LAST_SOFFSET	0x600000
 
-void dumpEmunand(const char* path)
+void dumpNand(const char* path, int type)
 {
 	file_s* out = file_open(path, FILE_W | FILE_T);
 	if(out)
@@ -29,7 +30,11 @@ void dumpEmunand(const char* path)
 			int i = 0;
 			for(i = 0; i < size / 0x200; i += bufferSize / 0x200)
 			{
-				ctrff_emunand_read(buffer, i, bufferSize / 0x200);
+				if(type)
+					ctrff_emunand_read(buffer, i, bufferSize / 0x200);
+				else
+					ctrff_nand_read(buffer, i, bufferSize / 0x200);
+
 				file_write(out, buffer, bufferSize);
 			}
 
