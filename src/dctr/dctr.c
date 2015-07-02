@@ -32,6 +32,50 @@ void bootDelay()
 	);
 }
 
+void reboot()
+{
+	printf("Rebooting\n");
+
+	asm
+	(
+		"msr cpsr_c, #0xDF\n\t"
+		"ldr r0, =0x10000035\n\t"
+		"mcr p15, 0, r0, c6, c3, 0\n\t"
+		"mrc p15, 0, r0, c2, c0, 0\n\t"
+		"mrc p15, 0, r12, c2, c0, 1\n\t"
+		"mrc p15, 0, r1, c3, c0, 0\n\t"
+		"mrc p15, 0, r2, c5, c0, 2\n\t"
+		"mrc p15, 0, r3, c5, c0, 3\n\t"
+		"ldr r4, =0x18000035\n\t"
+		"bic r2, r2, #0xF0000\n\t"
+		"bic r3, r3, #0xF0000\n\t"
+		"orr r0, r0, #0x10\n\t"
+		"orr r2, r2, #0x30000\n\t"
+		"orr r3, r3, #0x30000\n\t"
+		"orr r12, r12, #0x10\n\t"
+		"orr r1, r1, #0x10\n\t"
+		"mcr p15, 0, r0, c2, c0, 0\n\t"
+		"mcr p15, 0, r12, c2, c0, 1\n\t"
+		"mcr p15, 0, r1, c3, c0, 0\n\t"
+		"mcr p15, 0, r2, c5, c0, 2\n\t"
+		"mcr p15, 0, r3, c5, c0, 3\n\t"
+		"mcr p15, 0, r4, c6, c4, 0\n\t"
+		"mrc p15, 0, r0, c2, c0, 0\n\t"
+		"mrc p15, 0, r1, c2, c0, 1\n\t"
+		"mrc p15, 0, r2, c3, c0, 0\n\t"
+		"orr r0, r0, #0x20\n\t"
+		"orr r1, r1, #0x20\n\t"
+		"orr r2, r2, #0x20\n\t"
+		"mcr p15, 0, r0, c2, c0, 0\n\t"
+		"mcr p15, 0, r1, c2, c0, 1\n\t"
+		"mcr p15, 0, r2, c3, c0, 0\n\t"
+		::: "r0", "r1", "r2", "r3", "r4", "r12"
+	);
+
+	*(uint32_t*)0x1FFFFFF8 = (uint32_t)((firm_h*)0x24000000)->a11Entry;
+	((void (*)())0x0801B01C)();
+}
+
 int main()
 {
 	bootDelay();
@@ -94,13 +138,16 @@ int main()
 				dirlist_change_path(&dirlist, path);
 			else
 			{
-				u8* ext = path + (strlen(path) - 4);
-				if(strcasecmp(ext, ".cxi") == 0) //.cxi
-					cxiDecrypt(path);
-				else if(strcasecmp(ext, ".3ds") == 0 || strcasecmp(ext, ".cci") == 0) // .3ds .cci
-					cciDecrypt(path);
-				else if(strcasecmp(ext, ".app") == 0)
-					cdnDecrypt(path);
+				u8* ext = strrchr(path, '.');
+				if(ext != NULL)
+				{
+					if(strcasecmp(ext, ".cxi") == 0 || strcasecmp(ext, ".cfa") == 0 || strcasecmp(ext, ".ncch") == 0) //.cxi
+						cxiDecrypt(path);
+					else if(strcasecmp(ext, ".3ds") == 0 || strcasecmp(ext, ".cci") == 0) // .3ds .cci
+						cciDecrypt(path);
+					else if(strcasecmp(ext, ".app") == 0)
+						cdnDecrypt(path);
+				}
 
 				*(path + len) = 0;
 			}
@@ -122,5 +169,7 @@ int main()
 			printf("Done..\n");
 			*/
 		}
+		else if(input & HID_START)
+			reboot();
 	}
 }
