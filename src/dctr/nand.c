@@ -2,7 +2,7 @@
 #include "mem.h"
 #include "ctr/headers.h"
 #include "ctr/printf.h"
-#include "ctrff.h"
+#include "ctrff/ctrff.h"
 #include "file.h"
 
 #define		NAND_SOFFSET		0x200000

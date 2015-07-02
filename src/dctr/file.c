@@ -1,6 +1,6 @@
 #include "file.h"
-#include "ff.h"
-#include "ctrff.h"
+#include "ctrff/ff.h"
+#include "ctrff/ctrff.h"
 #include "mem.h"
 #include "decrypt.h"
 

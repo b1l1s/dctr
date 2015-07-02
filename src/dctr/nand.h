@@ -2,7 +2,7 @@
 #define __NAND_H
 
 #include "ctr/types.h"
-#include "sdmmc.h"
+#include "ctrff/sdmmc.h"
 
 #ifndef SECTOR_SIZE
 #define SECTOR_SIZE				0x200

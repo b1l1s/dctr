@@ -7,9 +7,6 @@ LD=arm-none-eabi-ld
 MV=mv -f
 RM=rm -rf
 
-CTR_DIR=../ctr
-CTRFF_DIR=../ctrff
-
 LIBNAME=dctr
 ELFNAME=$(LIBNAME).elf
 BINNAME=$(LIBNAME).bin
@@ -21,12 +18,10 @@ LIB_DIR:=lib
 DEP_DIR:=obj/$(LIBNAME)
 
 LIBS=-lctrff -lctr
-LIBPATHS=-L$(CTRFF_DIR)/lib -L$(CTR_DIR)/lib
-INCPATHS=-I$(CTRFF_DIR)/include -I$(CTR_DIR)/include
 
-CFLAGS=-std=gnu99 -Os -g -mword-relocations -fomit-frame-pointer -ffast-math $(INCPATHS)
+CFLAGS=-std=gnu99 -Os -g -mword-relocations -fomit-frame-pointer -ffast-math
 C9FLAGS=-mcpu=arm946e-s -march=armv5te -mlittle-endian
-LDFLAGS=$(LIBS) $(LIBPATHS)
+LDFLAGS=$(LIBS)
 OCFLAGS=--set-section-flags .bss=alloc,load,contents
 
 OBJS:=$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(wildcard $(SRC_DIR)/*.c))
@@ -43,7 +38,7 @@ out/$(DATNAME): bin/$(BINNAME)
 	make dir_out=../out name=$(DATNAME) -C CakeHax launcher
 	dd if=bin/$(BINNAME) of=out/$(DATNAME) bs=512 seek=256
 
-bin/dctr.bin: $(OBJS) $(CTRFF_DIR)/lib/libctrff.a $(CTR_DIR)/lib/libctr.a | dirs
+bin/dctr.bin: $(OBJS) | dirs
 	$(CC) -nostartfiles --specs=$(LIBNAME).specs $(OBJS) $(LDFLAGS) -o bin/$(ELFNAME)
 	$(OC) $(OCFLAGS) -O binary bin/$(ELFNAME) bin/$(BINNAME)
 
