@@ -40,7 +40,7 @@ OUT_DIR=bin out obj/dctr
 all: out/$(DATNAME)
 
 out/$(DATNAME): bin/$(BINNAME)
-	make dir_out=../out path= name=$(DATNAME) -C CakeHax launcher
+	make dir_out=../out name=$(DATNAME) -C CakeHax launcher
 	dd if=bin/$(BINNAME) of=out/$(DATNAME) bs=512 seek=256
 
 bin/dctr.bin: $(OBJS) $(CTRFF_DIR)/lib/libctrff.a $(CTR_DIR)/lib/libctr.a | dirs
