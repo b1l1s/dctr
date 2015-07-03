@@ -162,33 +162,36 @@ void cxiDecrypt(const char* fname)
 {
 	printf("Decypting CXI : %s\n", fname);
 	file_s* file = file_open(fname, FILE_W);
-	if(file)
+	if(!file)
 	{
-		u32 filesize = file_getsize(file);
-		ncch_h* ncch = (ncch_h*) memmgr_alloc(sizeof(ncch_h));
-
-		file_read(file, ncch, sizeof(ncch_h));
-		if(ncch->magic == NCCH_MAGIC)
-		{
-			u32 workSize = 0x100000; // 1MB
-			void* work = (void*) memmgr_alloc(workSize);
-
-			_cxiDecrypt(ncch, file, 0, work, workSize);
-
-			file_seek(file, 0);
-			file_write(file, ncch, sizeof(ncch_h));
-
-			printf("Done!\n");
-			memmgr_free(work);
-		}
-		else
-		{
-			printf("Invalid CXI\n");
-		}
-
-		memmgr_free(ncch);
-		file_close(file);
+		printf("Failed to open %s\n", fname);
+		return;
 	}
+
+	u32 filesize = file_getsize(file);
+	ncch_h* ncch = (ncch_h*) memmgr_alloc(sizeof(ncch_h));
+
+	file_read(file, ncch, sizeof(ncch_h));
+	if(ncch->magic == NCCH_MAGIC)
+	{
+		u32 workSize = 0x100000; // 1MB
+		void* work = (void*) memmgr_alloc(workSize);
+
+		_cxiDecrypt(ncch, file, 0, work, workSize);
+
+		file_seek(file, 0);
+		file_write(file, ncch, sizeof(ncch_h));
+
+		printf("Done!\n");
+		memmgr_free(work);
+	}
+	else
+	{
+		printf("Invalid CXI\n");
+	}
+
+	memmgr_free(ncch);
+	file_close(file);
 }
 
 void cciDecrypt(const char* fname)

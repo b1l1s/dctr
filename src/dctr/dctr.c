@@ -112,12 +112,17 @@ int main()
 		file_close(file);
 	}
 	else
-		printf("Failed to open slot0x25keyX.bin\n");
+	{
+		printf("Failed to open slot0x25keyX.bin\n"
+				"YOU NEED THIS FILE EVEN ON 9.X, ELSE\n"
+				"7.x CRYPTO WILL FAIL!\n");
+	}
 
 	char path[0x3FF];
 	sprintf(path, "%s", "sdmc:");
 	dirlist_draw_borders();
 	dirlist_change_path(&dirlist, path);
+
 	while(1)
 	{
 		dirlist_draw(&dirlist);
@@ -168,6 +173,11 @@ int main()
 			dumpNand("sdmc:/ctrnand.bin", 0);
 			printf("Done..\n");
 			*/
+		}
+		else if(input & HID_Y)
+		{
+			printf("Dumping factory titles. Scanning...\n");
+			dumpFactoryTitles();
 		}
 		else if(input & HID_START)
 			reboot();

@@ -28,5 +28,6 @@ typedef struct emunand_s
 
 u32 getEmunands(emunand_s* nands, u32 max);
 void dumpNand(const char* path, int type);
+void dumpFactoryTitles(void);
 
 #endif /*__NAND_H*/
