@@ -36,7 +36,7 @@ all: out/$(DATNAME)
 
 out/$(DATNAME): bin/$(BINNAME)
 	make dir_out=../out name=$(DATNAME) -C CakeHax launcher
-	dd if=bin/$(BINNAME) of=out/$(DATNAME) bs=512 seek=256
+	dd if=bin/$(BINNAME) of=out/$(DATNAME) bs=512 seek=144
 
 bin/dctr.bin: $(OBJS) | dirs
 	$(CC) -nostartfiles --specs=$(LIBNAME).specs $(OBJS) $(LDFLAGS) -o bin/$(ELFNAME)
