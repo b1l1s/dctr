@@ -153,6 +153,11 @@ int main()
 					else if(strcasecmp(ext, ".app") == 0)
 						cdnDecrypt(path);
 				}
+				else
+				{
+					if(strlen(dirlist.dirContents[dirlist.sel].name) == 8)
+						cdnDecryptWithTicket(path);
+				}
 
 				*(path + len) = 0;
 			}

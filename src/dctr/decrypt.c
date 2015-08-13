@@ -17,6 +17,9 @@ typedef struct title_key_s
 static title_key_s* titleKeys;
 static u32 titleKeysCount;
 
+int commonKeyYInit = 0;
+u8 commonKeyY[6][AES_BLOCK_SIZE];
+
 void fileDecrypt(file_decrypt_ctx* ctx)
 {
 	u32 size = ctx->size;
@@ -386,6 +389,160 @@ void cdnDecrypt(const char* path)
 			file_write(file, ncch, sizeof(ncch_h));
 			printf("Done!\n");
 		}
+
+		memmgr_free(work);
+		memmgr_free(ncch);
+		file_close(file);
+	}
+}
+
+void getSigSizeAndPad(uint32_t type, uint32_t* size, uint32_t* pad)
+{
+	switch(type)
+	{
+	case SIG_TYPE_RSA4096_SHA256:
+		*size = 0x200;
+		*pad = 0x3C;
+		break;
+	case SIG_TYPE_RSA2048_SHA256:
+		*size = 0x100;
+		*pad = 0x3C;
+		break;
+	case SIG_TYPE_ECDSA_SHA256:
+		*size = 0x3C;
+		*pad = 0x40;
+		break;
+	}
+}
+
+void printBe(const u8* src, int size)
+{
+	for(int i = 0; i < size; ++i)
+		printf("%02X", src[i]);
+}
+
+int initCommonKeyY()
+{
+	if(commonKeyYInit)
+		return 0;
+
+	u8* p9_base = (u8*)0x08028000;
+	u8* search = p9_base + 0x6C000;
+	for(int i = 0; i < 0x4000; ++i)
+	{
+		if(search[i + 0x0] == 0xD0 && search[i + 0x4] == 0x9C
+		&& search[i + 0x8] == 0x32 && search[i + 0xC] == 0x23)
+		{
+			u8* p9keyy = &search[i];
+			for(int k = 0; k < 6; ++k, p9keyy += 0x14)
+				memcpy(commonKeyY[k], p9keyy, AES_BLOCK_SIZE);
+
+			commonKeyYInit = 1;
+
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+void decryptTitleKey(u8* titleKey, u8* titleId, file_s* ticketf, size_t offset)
+{
+	uint32_t sigtype;
+
+	file_seek(ticketf, offset);
+	file_read(ticketf, &sigtype, sizeof(sigtype));
+	sigtype = __builtin_bswap32(sigtype);
+
+	uint32_t sigsize, sigpad;
+	getSigSizeAndPad(sigtype, &sigsize, &sigpad);
+
+	file_seek(ticketf, sizeof(sigtype) + sigsize + sigpad);
+
+	ticket_h* ticket = (ticket_h*) memmgr_alloc(sizeof(ticket_h));
+	file_read(ticketf, ticket, sizeof(ticket_h));
+
+	aes_setkey(0x3D, commonKeyY[ticket->ticketCommonKeyYIndex], AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+	aes_use_keyslot(0x3D);
+
+	u8 iv[AES_BLOCK_SIZE];
+	memset(iv, 0, AES_BLOCK_SIZE);
+	memcpy(iv, ticket->titleID, sizeof(ticket->titleID));
+
+	memcpy(titleKey, ticket->titleKey, sizeof(ticket->titleKey));
+	aes(titleKey, titleKey, 1, iv, AES_CBC_DECRYPT_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
+
+	memcpy(titleId, ticket->titleID, sizeof(ticket->titleID));
+
+	memmgr_free(ticket);
+}
+
+void cdnDecryptWithTicket(const char* path)
+{
+	u8 titleKey[AES_BLOCK_SIZE];
+	u8 titleId[8];
+
+	if(initCommonKeyY())
+	{
+		printf("Failed to find common key Y from internal memory.\n");
+		return;
+	}
+
+	char ticketpath[0x100];
+	char* tpath = strrchr(path, '/');
+	if(tpath)
+	{
+		memcpy(ticketpath, path, tpath - path);
+		sprintf(ticketpath + (tpath - path), "/cetk");
+	}
+	else
+		return;
+
+	printf("Ticket : %s\n", ticketpath);
+
+	file_s* ticketf = file_open(ticketpath, FILE_R);
+	if(ticketf)
+	{
+		decryptTitleKey(titleKey, titleId, ticketf, 0);
+		file_close(ticketf);
+	}
+	else
+		return;
+
+	printf("Decrypted title key : ");
+	printBe(titleKey, 0x10); printf("\n");
+
+	file_s* file = file_open(path, FILE_W);
+	if(file)
+	{
+		ncch_h* ncch = (ncch_h*) memmgr_alloc(sizeof(ncch_h));
+
+		u32 workSize = 0x100000; // 1MB
+		void* work = (void*) memmgr_alloc(workSize);
+
+		file_read(file, ncch, sizeof(ncch_h));
+
+		u8 iv[AES_BLOCK_SIZE];
+		aes_setkey(AES_TEMP_KEYSLOT, titleKey, AES_KEYNORMAL, AES_INPUT_BE | AES_INPUT_NORMAL);
+		aes_use_keyslot(AES_TEMP_KEYSLOT);
+
+		memset(iv, 0, AES_BLOCK_SIZE);
+		aes(ncch, ncch, sizeof(ncch_h) / AES_BLOCK_SIZE, iv, AES_CBC_DECRYPT_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
+		if(ncch->magic == NCCH_MAGIC)
+		{
+			printf("Decrypting APP: %s\n", path);
+
+			memset(iv, 0, AES_BLOCK_SIZE);
+			_cdnDecrypt(iv, file, 0, work, workSize);
+
+			_cxiDecrypt(ncch, file, 0, work, workSize);
+
+			file_seek(file, 0);
+			file_write(file, ncch, sizeof(ncch_h));
+			printf("Done!\n");
+		}
+		else
+			printf("Decryption failed\n");
 
 		memmgr_free(work);
 		memmgr_free(ncch);
